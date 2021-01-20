@@ -5,30 +5,44 @@ import {
   Text,
   View,
   FlatList,
-  TouchableOpacity,
   ActivityIndicator,
   AppState,
+  Button,
 } from 'react-native';
 import {useDispatch, useSelector} from 'react-redux';
 import actions from '../actions';
 import * as network from '../repo/network';
 import * as db from '../repo/db';
-import FastImage from 'react-native-fast-image';
 import realm from '../repo/realm';
+import NewRows from '../components/NewsRow';
 import Strings from '../constants/Strings';
+
+let page = 1;
 
 export default function MainScreen({navigation}) {
   const dispatch = useDispatch();
 
-  const [loading, setLoading] = useState(false);
-  const [refreshing, setRefreshing] = useState(false);
-  const [appState, setAppState] = useState(AppState.currentState);
+  const [loading, setLoading] = useState(false); //loading state indicate wether news is loading or not
+  const [loadingMore, setLoadingMore] = useState(false); //loading more state indicate wether news is loading or not
+  const [refreshing, setRefreshing] = useState(false); //refreshing state to use on refresh of FlatList
+  const [appState, setAppState] = useState(AppState.currentState); //get the app state to check when app come from background to foreground to reload news
 
+  //to detect when scroll to end of list
+  const [
+    onEndReachedCalledDuringMomentum,
+    setOnEndReachedCalledDuringMomentum,
+  ] = useState(true);
+  //check when we reach the end of news, no more news to load
+  const [endOfPage, setEndOfPage] = React.useState(false);
+
+  //reducer store to poppulate news to FlatList
   const getNewsReducer = useSelector((state) => state.getNewsReducer);
-  const {news} = getNewsReducer;
+  const {news, error} = getNewsReducer;
 
   useEffect(() => {
-    getNews(false);
+    //get news when app start
+    getNews(false, false);
+    //add app state event listener to detect when app come to from background to foreground
     AppState.addEventListener('change', _handleAppStateChange);
     return () => {
       AppState.removeEventListener('change', _handleAppStateChange);
@@ -42,134 +56,132 @@ export default function MainScreen({navigation}) {
     setAppState(nextAppState);
   };
 
+  //when app come from background to foreground, reload news automatically
   useEffect(() => {
     if (appState && appState === 'active') {
-      getNews(true);
+      getNews(true, false);
     }
   }, [appState]);
 
-  const getNews = (isRefresh) => {
+  const getNews = (isRefresh, isLoadMore) => {
+    /* If not refreshing news, check if user do load more or not.
+    If load more then fetch news from network otherwise display news from local database */
     if (!isRefresh) {
-      const localNews = db.getLocalNews(realm);
-      if (localNews.length == 0) {
-        network.getNews((news, error) => {
+      if (isLoadMore) {
+        setLoadingMore(true);
+        network.getNews(page, (articles, error) => {
           setLoading(false);
           setRefreshing(false);
+          setLoadingMore(false);
           if (error) {
-            dispatch(actions.getNewsError(error));
+            console.log(error);
+            setEndOfPage(true);
           } else {
-            db.storeNews(realm, news);
-            dispatch(actions.getNews(news));
+            if (articles.length === 0) {
+              setEndOfPage(true);
+            } else {
+              let allArticles = news.concat(articles);
+              dispatch(actions.getNews(allArticles));
+            }
           }
         });
       } else {
-        dispatch(actions.getNews(localNews));
+        const localNews = db.getLocalNews(realm);
+        /* If app start for the first time, local database is empty then we fetch news from network.
+        Otherwise we display news from local database */
+        if (localNews.length === 0) {
+          fetchFromNetwork();
+        } else {
+          dispatch(actions.getNews(localNews));
+        }
       }
     } else {
-      network.getNews((news, error) => {
-        setLoading(false);
-        setRefreshing(false);
-        if (error) {
-          dispatch(actions.getNewsError(error));
-        } else {
-          db.storeNews(realm, news);
-          dispatch(actions.getNews(news));
-        }
-      });
+      /*If user do a refresh action or auto refresh when app come from background to foreground,
+      fetch news from network normally*/
+      page = 1;
+      setRefreshing(true);
+      setEndOfPage(false);
+      fetchFromNetwork();
     }
   };
 
-  const viewDetails = (news) => {
-    navigation.navigate('Details', {
-      news,
+  const fetchFromNetwork = () => {
+    network.getNews(page, (articles, error) => {
+      setLoading(false);
+      setRefreshing(false);
+      if (error) {
+        console.log(error);
+        dispatch(actions.getNewsError(error));
+      } else {
+        db.storeNews(realm, articles);
+        dispatch(actions.getNews(articles));
+      }
     });
   };
 
-  const renderItem = ({item, index}) => {
-    const normalisedSource =
-      item.urlToImage &&
-      typeof item.urlToImage === 'string' &&
-      !item.urlToImage.split('http')[1]
-        ? Strings.DEFAULT_IMAGE_URL
-        : item.urlToImage;
-    return (
-      <TouchableOpacity onPress={() => viewDetails(item)}>
-        <View>
-          <View
-            style={{
-              flexDirection: 'row',
-              marginTop: 5,
-              marginBottom: 5,
-              alignItems: 'center',
-              justifyContent: 'space-between',
-            }}>
-            <FastImage
-              style={{width: 80, height: 80, borderRadius: 10, marginEnd: 10}}
-              source={{
-                uri: normalisedSource
-                  ? normalisedSource
-                  : Strings.DEFAULT_IMAGE_URL,
-                priority: FastImage.priority.normal,
-              }}
-              resizeMode={FastImage.resizeMode.cover}
-            />
-            <View style={{flexShrink: 1, width: '100%'}}>
-              <Text
-                style={{
-                  color: '#000000',
-                  fontSize: 16,
-                  fontWeight: 'bold',
-                }}
-                numberOfLines={1}
-                ellipsizeMode="tail">
-                {item.title}
-              </Text>
-              <Text
-                style={{
-                  color: '#000000',
-                  fontSize: 14,
-                  fontWeight: '500',
-                  marginTop: 5,
-                }}
-                numberOfLines={1}
-                ellipsizeMode="tail">
-                {item.description}
-              </Text>
-              <Text
-                style={{
-                  color: '#999999',
-                  fontSize: 12,
-                  fontWeight: '600',
-                  marginTop: 5,
-                }}
-                numberOfLines={1}>
-                {item.publishedAt}
-              </Text>
-            </View>
-          </View>
-          <View
-            style={{
-              width: '100%',
-              height: 1,
-              backgroundColor: '#d8d8d8',
-              marginVertical: 5,
-            }}
-          />
+  //render footer to show when listview is loading more
+  const renderFooter = () => {
+    if (loadingMore) {
+      return (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color={Strings.MAIN_COLOR} />
         </View>
-      </TouchableOpacity>
+      );
+    } else {
+      if (endOfPage) {
+        return (
+          <View style={styles.loading}>
+            <Text style={styles.endTitle}>No more articles</Text>
+          </View>
+        );
+      } else {
+        return null;
+      }
+    }
+  };
+
+  const handleLoadMore = () => {
+    if (!onEndReachedCalledDuringMomentum) {
+      if (!endOfPage) {
+        page += 1;
+        getNews(false, true);
+      }
+      setOnEndReachedCalledDuringMomentum(true);
+    }
+  };
+
+  const renderItem = ({item, index}) => {
+    return <NewRows item={item} navigation={navigation} />;
+  };
+
+  const renderErrorView = () => {
+    return (
+      <View style={styles.spinnerContainer}>
+        <Text style={{fontSize: 20, marginBottom: 10}}>Oops</Text>
+        <Text style={{marginBottom: 10}}>{error.message}</Text>
+        <Button
+          style={{
+            width: 150,
+            height: 50,
+            borderRadius: 10,
+            alignSelf: 'center',
+          }}
+          title="Try again"
+          onPress={() => getNews(false, false)}></Button>
+      </View>
     );
   };
 
-  let content;
-
-  if (loading) {
-    content = (
-      <View style={styles.spinner}>
+  const renderLoadingView = () => {
+    return (
+      <View style={styles.spinnerContainer}>
         <ActivityIndicator />
       </View>
     );
-  } else {
-    content = (
+  };
+
+  const renderListView = () => {
+    return (
       <FlatList
         style={{
           paddingStart: 20,
@@ -182,45 +194,49 @@ export default function MainScreen({navigation}) {
         showsVerticalScrollIndicator={false}
         keyExtractor={(_, i) => `flat_${i}`}
         refreshing={refreshing}
-        onRefresh={() => getNews(true)}
+        onRefresh={() => getNews(true, false)}
+        onMomentumScrollBegin={() => {
+          setOnEndReachedCalledDuringMomentum(false);
+        }}
+        onEndReached={handleLoadMore}
+        onEndReachedThreshold={0.5}
+        ListFooterComponent={renderFooter}
       />
     );
+  };
+
+  let content;
+
+  if (loading) {
+    content = renderLoadingView();
+  } else if (error) {
+    content = renderErrorView();
+  } else {
+    content = renderListView();
   }
 
   return (
     <SafeAreaView
       style={{
         flex: 0,
-        backgroundColor: '#303F9F',
+        backgroundColor: Strings.MAIN_COLOR,
       }}>
-      <View
-        style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          paddingVertical: 10,
-          justifyContent: 'center',
-          backgroundColor: '#303F9F',
-        }}>
-        <Text
-          style={{
-            fontSize: 22,
-            fontWeight: '500',
-            color: 'white',
-          }}>
-          News
-        </Text>
+      <View styles={{flex: 1}}>
+        <View style={styles.appbar}>
+          <Text style={styles.appTitle}>News</Text>
+        </View>
+        {content}
       </View>
-      {content}
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  spinner: {
-    flex: 1,
+  spinnerContainer: {
     height: '100%',
     justifyContent: 'center',
-    alignSelf: 'center',
+    alignItems: 'center',
+    backgroundColor: 'white',
   },
 
   title: {
@@ -229,5 +245,33 @@ const styles = StyleSheet.create({
     fontWeight: '500',
     marginStart: 20,
     marginTop: 10,
+  },
+
+  loading: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 10,
+    minHeight: 100,
+  },
+
+  appbar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    justifyContent: 'center',
+    backgroundColor: Strings.MAIN_COLOR,
+  },
+
+  appTitle: {
+    fontSize: 22,
+    fontWeight: '500',
+    color: 'white',
+  },
+
+  endTitle: {
+    fontSize: 22,
+    fontWeight: '500',
+    color: 'black',
   },
 });

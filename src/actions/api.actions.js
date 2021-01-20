@@ -1,5 +1,6 @@
 import * as types from './types';
 
+//redux action ti dispatch when get news success
 export function getNews(response) {
   return {
     type: types.GET_NEWS,
@@ -7,6 +8,7 @@ export function getNews(response) {
   };
 }
 
+//redux action ti dispatch when get news error
 export function getNewsError(error) {
   return {
     type: types.GET_NEWS_ERROR,

@@ -10,7 +10,7 @@ Article.schema = {
     description: 'string',
     publishedAt: 'string',
     urlToImage: 'string',
-    content: 'string',
+    content: 'string?',
     url: 'string',
   },
 };

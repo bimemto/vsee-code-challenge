@@ -10,25 +10,19 @@ import {
 import ParallaxScrollView from 'react-native-parallax-scroll-view';
 import {getStatusBarHeight, isIphoneX} from 'react-native-iphone-x-helper';
 import Strings from '../constants/Strings';
+import BackIcon from '../components/BackIcon';
 
 export const NewsDetailScreen = ({navigation}) => {
   const news = navigation.state.params.news;
   const PARALLAX_HEADER_HEIGHT = 280;
   const STICKY_HEADER_HEIGHT = getStatusBarHeight() + 60;
 
-  const BackIcon = (style) => (
-    <Image
-      {...style}
-      width={24}
-      height={24}
-      source={require('../assets/images/back.png')}
-    />
-  );
-
+  /*Open webview screen to read full article */
   const openWebView = () => {
     navigation.navigate('Full', {link: news.url, title: news.title});
   };
 
+  //check image url to ensure there is no invalid url tobe loaded in article image
   const normalisedSource =
     news.urlToImage &&
     typeof news.urlToImage === 'string' &&
@@ -36,6 +30,9 @@ export const NewsDetailScreen = ({navigation}) => {
       ? Strings.DEFAULT_IMAGE_URL
       : news.urlToImage;
 
+  /*
+      Render parallax scroll view wit backdrop image
+       */
   return (
     <View style={{flex: 1}}>
       <ParallaxScrollView
@@ -46,11 +43,7 @@ export const NewsDetailScreen = ({navigation}) => {
         renderBackground={() => (
           <View key="background">
             <Image
-              style={{
-                width: '100%',
-                height: undefined,
-                aspectRatio: 375 / 283,
-              }}
+              style={styles.cover}
               source={
                 normalisedSource
                   ? {uri: normalisedSource}
@@ -58,15 +51,7 @@ export const NewsDetailScreen = ({navigation}) => {
               }
               resizeMode="cover"
             />
-            <View
-              style={{
-                position: 'absolute',
-                top: 0,
-                width: window.width,
-                backgroundColor: 'rgba(0,0,0,.4)',
-                height: PARALLAX_HEADER_HEIGHT,
-              }}
-            />
+            <View style={styles.space} />
           </View>
         )}
         renderFixedHeader={() => (
@@ -80,67 +65,17 @@ export const NewsDetailScreen = ({navigation}) => {
             </TouchableOpacity>
           </View>
         )}
-        renderForeground={() => (
-          <View
-            style={{
-              flexDirection: 'column',
-              width: '100%',
-              height: '10%',
-              alignSelf: 'flex-end',
-              backgroundColor: '#FFFFFF',
-              borderTopLeftRadius: 30,
-              borderTopRightRadius: 30,
-              position: 'absolute',
-              bottom: 0,
-              paddingTop: 50,
-              paddingLeft: 20,
-              paddingRight: 20,
-              paddingBottom: 10,
-            }}
-          />
-        )}>
+        renderForeground={() => <View style={styles.foreground} />}>
         <View style={{padding: 20}}>
           <View style={{flexShrink: 1, width: '100%', marginBottom: 20}}>
             <View style={{flexDirection: 'row'}}>
-              <Text
-                style={{
-                  color: '#000000',
-                  fontSize: 10,
-                  fontWeight: '600',
-                  alignSelf: 'center',
-                  marginStart: 5,
-                }}>
-                {news ? news.author : ''}
-              </Text>
+              <Text style={styles.author}>{news ? news.author : ''}</Text>
             </View>
-            <Text
-              style={{
-                color: '#000000',
-                fontSize: 20,
-                fontWeight: '600',
-                marginTop: 10,
-                lineHeight: 30,
-              }}>
-              {news ? news.title : ''}
-            </Text>
+            <Text style={styles.title}>{news ? news.title : ''}</Text>
 
-            <Text
-              style={{
-                color: '#999999',
-                fontSize: 12,
-                fontWeight: '600',
-              }}>
-              {news ? news.publishedAt : ''}
-            </Text>
+            <Text style={styles.time}>{news ? news.publishedAt : ''}</Text>
 
-            <Text
-              style={{
-                color: '#000000',
-                fontSize: 14,
-                fontWeight: '600',
-                alignSelf: 'center',
-                marginTop: 20,
-              }}>
+            <Text style={styles.content}>
               {news.content
                 ? news.content.substring(0, news.content.indexOf('[+'))
                 : ''}
@@ -148,12 +83,7 @@ export const NewsDetailScreen = ({navigation}) => {
           </View>
 
           <Button
-            style={{
-              width: 150,
-              height: 50,
-              borderRadius: 10,
-              alignSelf: 'center',
-            }}
+            style={styles.button}
             title="Read full article"
             onPress={() => openWebView()}></Button>
         </View>
@@ -186,5 +116,72 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     alignSelf: 'center',
+  },
+
+  button: {
+    width: 150,
+    height: 50,
+    borderRadius: 10,
+    alignSelf: 'center',
+  },
+
+  content: {
+    color: '#000000',
+    fontSize: 14,
+    fontWeight: '600',
+    alignSelf: 'center',
+    marginTop: 20,
+  },
+
+  time: {
+    color: '#999999',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+
+  title: {
+    color: '#000000',
+    fontSize: 20,
+    fontWeight: '600',
+    marginTop: 10,
+    lineHeight: 30,
+  },
+
+  author: {
+    color: '#000000',
+    fontSize: 10,
+    fontWeight: '600',
+    alignSelf: 'center',
+    marginStart: 5,
+  },
+
+  foreground: {
+    flexDirection: 'column',
+    width: '100%',
+    height: '10%',
+    alignSelf: 'flex-end',
+    backgroundColor: '#FFFFFF',
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    position: 'absolute',
+    bottom: 0,
+    paddingTop: 50,
+    paddingLeft: 20,
+    paddingRight: 20,
+    paddingBottom: 10,
+  },
+
+  space: {
+    position: 'absolute',
+    top: 0,
+    width: window.width,
+    backgroundColor: 'rgba(0,0,0,.4)',
+    height: PARALLAX_HEADER_HEIGHT,
+  },
+
+  cover: {
+    width: '100%',
+    height: undefined,
+    aspectRatio: 375 / 283,
   },
 });
