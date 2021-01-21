@@ -183,6 +183,7 @@ export default function MainScreen({navigation}) {
   const renderListView = () => {
     return (
       <FlatList
+        testID="flat-list"
         style={{
           paddingStart: 20,
           paddingEnd: 20,
