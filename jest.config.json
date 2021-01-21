@@ -21,8 +21,6 @@
 		"/jest"
 	],
 	"globals": {
-		"window": {},
-		"PARALLAX_HEADER_HEIGHT": 280,
-		"STICKY_HEADER_HEIGHT": 110
+		"window": {}
 	}
 }

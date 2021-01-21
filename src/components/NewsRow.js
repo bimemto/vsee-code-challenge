@@ -12,11 +12,9 @@ import {
 import FastImage from 'react-native-fast-image';
 import Strings from '../constants/Strings';
 
-export default function NewRows({item, navigation}) {
+export default function NewRows({item, itemClick}) {
   const viewDetails = (news) => {
-    navigation.navigate('Details', {
-      news,
-    });
+    itemClick(news);
   };
 
   const normalisedSource =

@@ -12,8 +12,8 @@ import {getStatusBarHeight, isIphoneX} from 'react-native-iphone-x-helper';
 import Strings from '../constants/Strings';
 import BackIcon from '../components/BackIcon';
 
-export const NewsDetailScreen = ({navigation}) => {
-  const news = navigation.state.params.news;
+export const NewsDetailScreen = ({route, navigation}) => {
+  const news = route.params.news;
   const PARALLAX_HEADER_HEIGHT = 280;
   const STICKY_HEADER_HEIGHT = getStatusBarHeight() + 60;
 
@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     top: 0,
     width: window.width,
     backgroundColor: 'rgba(0,0,0,.4)',
-    height: PARALLAX_HEADER_HEIGHT,
+    height: 280,
   },
 
   cover: {

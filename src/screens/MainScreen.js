@@ -14,7 +14,7 @@ import actions from '../actions';
 import * as network from '../repo/network';
 import * as db from '../repo/db';
 import realm from '../repo/realm';
-import NewRows from '../components/NewsRow';
+import NewsRow from '../components/NewsRow';
 import Strings from '../constants/Strings';
 
 let page = 1;
@@ -150,8 +150,14 @@ export default function MainScreen({navigation}) {
     }
   };
 
+  const openDetail = (news) => {
+    navigation.navigate('Details', {
+      news,
+    });
+  };
+
   const renderItem = ({item, index}) => {
-    return <NewRows item={item} navigation={navigation} />;
+    return <NewsRow item={item} itemClick={openDetail} />;
   };
 
   const renderErrorView = () => {

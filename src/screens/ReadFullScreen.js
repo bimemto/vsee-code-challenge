@@ -10,9 +10,9 @@ import {
 import {WebView} from 'react-native-webview';
 import BackIcon from '../components/BackIcon';
 
-export const ReadFullScreen = ({navigation}) => {
-  const link = navigation.state.params.link; //link to article passed from detail screen
-  const title = navigation.state.params.title; //title of the article passed from detail screen
+export const ReadFullScreen = ({route, navigation}) => {
+  const link = route.params.link; //link to article passed from detail screen
+  const title = route.params.title; //title of the article passed from detail screen
 
   const navigateBack = () => {
     navigation.goBack();
