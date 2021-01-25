@@ -68,40 +68,52 @@ export default function MainScreen({navigation}) {
     If load more then fetch news from network otherwise display news from local database */
     if (!isRefresh) {
       if (isLoadMore) {
-        setLoadingMore(true);
-        network.getNews(page, (articles, error) => {
-          setLoading(false);
-          setRefreshing(false);
-          setLoadingMore(false);
-          if (error) {
-            console.log(error);
-            setEndOfPage(true);
-          } else {
-            if (articles.length === 0) {
-              setEndOfPage(true);
-            } else {
-              let allArticles = news.concat(articles);
-              dispatch(actions.getNews(allArticles));
-            }
-          }
-        });
+        loadMore();
       } else {
-        const localNews = db.getLocalNews(realm);
-        /* If app start for the first time, local database is empty then we fetch news from network.
-        Otherwise we display news from local database */
-        if (localNews.length === 0) {
-          fetchFromNetwork();
-        } else {
-          dispatch(actions.getNews(localNews));
-        }
+        loadNewsFromDbOrNetwork();
       }
     } else {
       /*If user do a refresh action or auto refresh when app come from background to foreground,
       fetch news from network normally*/
-      page = 1;
-      setRefreshing(true);
-      setEndOfPage(false);
+      refresh();
+    }
+  };
+
+  const refresh = () => {
+    page = 1;
+    setRefreshing(true);
+    setEndOfPage(false);
+    fetchFromNetwork();
+  };
+
+  const loadMore = () => {
+    setLoadingMore(true);
+    network.getNews(page, (articles, error) => {
+      setLoading(false);
+      setRefreshing(false);
+      setLoadingMore(false);
+      if (error) {
+        console.log(error);
+        setEndOfPage(true);
+      } else {
+        if (articles.length === 0) {
+          setEndOfPage(true);
+        } else {
+          let allArticles = news.concat(articles);
+          dispatch(actions.getNews(allArticles));
+        }
+      }
+    });
+  };
+
+  const loadNewsFromDbOrNetwork = () => {
+    const localNews = db.getLocalNews(realm);
+    /* If app start for the first time, local database is empty then we fetch news from network.
+    Otherwise we display news from local database */
+    if (localNews.length === 0) {
       fetchFromNetwork();
+    } else {
+      dispatch(actions.getNews(localNews));
     }
   };
 
